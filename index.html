@@ -10,22 +10,22 @@
     <button id="connectButton">Connect to ESP32</button>
     <div>
         <label for="ssidInput">SSID:</label>
-        <input type="text" id="ssidInput" placeholder="Enter SSID">
+        <input type="text" id="ssidInput" placeholder="Enter SSID" value="test_ssid">
         
         <label for="passwordInput">Password:</label>
-        <input type="text" id="passwordInput" placeholder="Enter Password">
+        <input type="text" id="passwordInput" placeholder="Enter Password" value="test_pass">
         
         <label for="numLedsInput">Number of LEDs:</label>
-        <input type="number" id="numLedsInput" placeholder="Enter Number of LEDs">
+        <input type="number" id="numLedsInput" placeholder="Enter Number of LEDs" value="22">
         
         <label for="colorOrderInput">Color Order:</label>
-        <input type="text" id="colorOrderInput" placeholder="Enter Color Order (e.g., RGB)">
+        <input type="text" id="colorOrderInput" placeholder="Enter Color Order (e.g., RGB)" value="RGB">
         
         <label for="ledTypeInput">LED Type:</label>
-        <input type="text" id="ledTypeInput" placeholder="Enter LED Type (e.g., WS2812B)">
+        <input type="text" id="ledTypeInput" placeholder="Enter LED Type (e.g., WS2812B)" value="WS2812B">
         
         <label for="universeInput">Universe:</label>
-        <input type="number" id="universeInput" placeholder="Enter Universe">
+        <input type="number" id="universeInput" placeholder="Enter Universe" value="1">
         
         <button id="sendButton">Send Configuration</button>
     </div>
@@ -36,54 +36,69 @@
 
     <script>
         let port;
+        let reader;
+
+        async function readFromPort() {
+            while (port.readable) {
+                try {
+                    const { value, done } = await reader.read();
+                    if (value) {
+                        document.querySelector("#responseOutput").textContent += new TextDecoder().decode(value);
+                    }
+                    if (done) {
+                        console.log("Reader has been fully drained");
+                        break;
+                    }
+                } catch (error) {
+                    console.error("Error reading from port:", error);
+                    break;
+                }
+            }
+        }
+
+
 
         document.querySelector("#connectButton").addEventListener("click", async () => {
             try {
                 port = await navigator.serial.requestPort();
                 await port.open({ baudRate: 115200 });
                 alert("Connected to ESP32!");
+
+                // Start reading immediately after connecting
+                reader = port.readable.getReader();
+                readFromPort();
+
             } catch (err) {
                 console.error("There was an error:", err);
                 alert("Failed to connect. Please try again.");
             }
         });
 
-        let reader;
 
-document.querySelector("#sendButton").addEventListener("click", async () => {
-    if (!port || !port.writable) {
-        alert("Not connected to ESP32. Please connect first.");
-        return;
-    }
 
-    const ssid = document.querySelector("#ssidInput").value;
-    const password = document.querySelector("#passwordInput").value;
-    const numLeds = document.querySelector("#numLedsInput").value;
-    const colorOrder = document.querySelector("#colorOrderInput").value;
-    const ledType = document.querySelector("#ledTypeInput").value;
-    const universe = document.querySelector("#universeInput").value;
+        document.querySelector("#sendButton").addEventListener("click", async () => {
+            if (!port || !port.writable) {
+                alert("Not connected to ESP32. Please connect first.");
+                return;
+            }
 
-    const command = `SSID:${ssid},PASSWORD:${password},NUM_LEDS:${numLeds},COLOR_ORDER:${colorOrder},LED_TYPE:${ledType},UNIVERSE:${universe}`;
+            const ssid = document.querySelector("#ssidInput").value;
+            const password = document.querySelector("#passwordInput").value;
+            const numLeds = document.querySelector("#numLedsInput").value;
+            const colorOrder = document.querySelector("#colorOrderInput").value;
+            const ledType = document.querySelector("#ledTypeInput").value;
+            const universe = document.querySelector("#universeInput").value;
 
-    const writer = port.writable.getWriter();
-    const data = new TextEncoder().encode(command);
-    await writer.write(data);
-    writer.releaseLock();
+            const command = `SSID:${ssid},PASSWORD:${password},NUM_LEDS:${numLeds},COLOR_ORDER:${colorOrder},LED_TYPE:${ledType},UNIVERSE:${universe}`;
 
-    // Reading data (if needed)
-    if (reader && !reader.closed) {
-        await reader.releaseLock();
-    }
-    reader = port.readable.getReader();
-    try {
-        const { value, done } = await reader.read();
-        if (!done) {
-            document.querySelector("#responseOutput").textContent = new TextDecoder().decode(value);
-        }
-    } finally {
-        reader.releaseLock();
-    }
-});
+            const writer = port.writable.getWriter();
+            const data = new TextEncoder().encode(command);
+            await writer.write(data);
+            writer.releaseLock();
+            console.log("Command sent:", command);
+        });
+
+
 
     </script>
 </body>

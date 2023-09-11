@@ -15,9 +15,14 @@
 
 //const char* ssid = "MyAtlice 3f1615";
 //const char* password = "37-pink-2045";
+
+// const char* ssid = "MyAltice 3f1615";
+// const char* password = "37-pink-2045";
+
+const char* ssid = "MyOptimum 8a4fff";
+const char* password = "14-maroon-5989";
+
 Preferences preferences;
-const char* ssid = "MyAltice 3f1615";
-const char* password = "37-pink-2045";
 
 // LED Strip
 const int numLeds = 480; // Change if your setup has more or less LED's
@@ -181,5 +186,7 @@ void setup() {
 void loop()
 {
   // we call the read function inside the loop
-  artnet.read();
+//   Serial.println("test");
+    getCommand();
+    artnet.read();
 }

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Configuration</title>
+</head>
+<body>
+    <h1>ESP32 Configuration</h1>
+    <button id="connectButton">Connect to ESP32</button>
+    <div>
+        <label for="ssidInput">SSID:</label>
+        <input type="text" id="ssidInput" placeholder="Enter SSID">
+        
+        <label for="passwordInput">Password:</label>
+        <input type="text" id="passwordInput" placeholder="Enter Password">
+        
+        <label for="numLedsInput">Number of LEDs:</label>
+        <input type="number" id="numLedsInput" placeholder="Enter Number of LEDs">
+        
+        <label for="colorOrderInput">Color Order:</label>
+        <input type="text" id="colorOrderInput" placeholder="Enter Color Order (e.g., RGB)">
+        
+        <label for="ledTypeInput">LED Type:</label>
+        <input type="text" id="ledTypeInput" placeholder="Enter LED Type (e.g., WS2812B)">
+        
+        <label for="universeInput">Universe:</label>
+        <input type="number" id="universeInput" placeholder="Enter Universe">
+        
+        <button id="sendButton">Send Configuration</button>
+    </div>
+    <div>
+        <h2>Response:</h2>
+        <pre id="responseOutput"></pre>
+    </div>
+
+    <script>
+        let port;
+
+        document.querySelector("#connectButton").addEventListener("click", async () => {
+            try {
+                port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 115200 });
+                alert("Connected to ESP32!");
+            } catch (err) {
+                console.error("There was an error:", err);
+                alert("Failed to connect. Please try again.");
+            }
+        });
+
+        let reader;
+
+document.querySelector("#sendButton").addEventListener("click", async () => {
+    if (!port || !port.writable) {
+        alert("Not connected to ESP32. Please connect first.");
+        return;
+    }
+
+    const ssid = document.querySelector("#ssidInput").value;
+    const password = document.querySelector("#passwordInput").value;
+    const numLeds = document.querySelector("#numLedsInput").value;
+    const colorOrder = document.querySelector("#colorOrderInput").value;
+    const ledType = document.querySelector("#ledTypeInput").value;
+    const universe = document.querySelector("#universeInput").value;
+
+    const command = `SSID:${ssid},PASSWORD:${password},NUM_LEDS:${numLeds},COLOR_ORDER:${colorOrder},LED_TYPE:${ledType},UNIVERSE:${universe}`;
+
+    const writer = port.writable.getWriter();
+    const data = new TextEncoder().encode(command);
+    await writer.write(data);
+    writer.releaseLock();
+
+    // Reading data (if needed)
+    if (reader && !reader.closed) {
+        await reader.releaseLock();
+    }
+    reader = port.readable.getReader();
+    try {
+        const { value, done } = await reader.read();
+        if (!done) {
+            document.querySelector("#responseOutput").textContent = new TextDecoder().decode(value);
+        }
+    } finally {
+        reader.releaseLock();
+    }
+});
+
+    </script>
+</body>
+</html>
